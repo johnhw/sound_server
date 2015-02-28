@@ -5,7 +5,7 @@ import sound_server
 
 
 # simple sound test; loads a yaml file with a sequence of OSC messsages, and
-# a starts a sound_server instance an another process, sending each message to
+# starts a sound_server instance an another process, sending each message to
 # the server
 
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
@@ -16,7 +16,8 @@ if __name__=="__main__":
     yml = sys.argv[1]
     with open(yml) as f:
         config = yaml.load(f)
-        
+  
+    # launch a sound_server instance
     server_config = config.get("config")    
     logging.debug("Launching sound server")
     multiprocessing.Process(target=sound_server.launch, args=(server_config,)).start()
@@ -26,7 +27,7 @@ if __name__=="__main__":
     # init OSC
     ip_address = config.get("ip_address", "127.0.0.1")    
     simpleOSC.initOSCClient(ip=ip_address, port=port)
-    start_time = time.clock()
+    start_time = clock.time()
     next_time = start_time 
     index = 0
     
