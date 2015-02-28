@@ -1,6 +1,24 @@
 # SoundServer
 The sound server reads a YAML file specifying sounds to be played. Sounds can then be triggered and manipulated remotely over OSC (e.g. fading in and out tracks).
 
+## Starting the server
+To start the server, call `launch(<config>)`, where `<config>` is the path of a YAML config file. To shut it down, send it the OSC message **/sound_server/shutdown**; pressing Ctrl-C will have the same effect. Note that
+the server will block; use `multiprocessing` if you want the server to run in the background
+
+Example:
+
+    from sound_server import sound_server    
+    sound_server.launch("my_config.yaml")
+    
+Non-blocking example:
+
+    from sound_server import sound_server    
+    import multiprocessing
+    
+    server_process = multiprocessing.Process(target=sound_server.launch, args=("my_config.yaml",))
+    server_process.start()
+    
+
 ## OSC commands
 The server responds to OSC messages. The following messages are supported:
 * **/sound_server/spawn** *(sound_name (string), spawn_name(string))* Create a new transient sound. The sound with name sound_name is created. It will be assigned the name spawn_name, so that you can subsequently adjust its gain, position etc. spawn_names should be unique. **pools**: you may specify a *pool* name instead of a sound name; this will choose a random sound from the pool and spawn it.
@@ -15,16 +33,16 @@ of a predefined *sync* point and a time offset in seconds. This allows precise s
 * **/sound_server/gain** *(sound_name (string), dB (float), [time (float)])* Sets the gain of the specified sound in decibels (e.g. -6.0 means half the volume). *time* is optional -- if not given, the gain is set immediately; otherwise the sound fades from its current gain to the set gain in *time* seconds.
 * **/sound_server/group_gain** *(sound_name (string), dB (float), [time (float)])* Sets the gain of all the sounds on a specified channel group in decibels. Note that this is **different** from setting the gain of a channel group (which effectively multiplies the gain of all sounds by its own gain); instead, this *individually* sets the gain of the sounds in the group to the given level. Only works on channel groups.
 * **/sound_server/position** *(sound_name (string), x (float), y (float), z (float), [time(float)])* Sets the 3D position of the sound. Optional argument *time* behaves as */sound_server/gain*. If set
-on a channel group, overrides the position for all sub-channels. Call */sound_server/position none* to clear the override.
+on a channel group, overrides the position for all sub-channels. Call */sound_server/position none* to a channel group to clear any override and return to the individual sounds' positions.
 * **/sound_server/filter** *(sound_name (string), Hz (float), [time(float)])* Sets the lowpass filtering of a sound. Note that channel groups always have a filter active, but bare sounds only have one if it was specified in the YAML configuration (if you try and set a sound without a filter, nothing will happen). Optional argument *time* behaves as */sound_server/gain*.
-* **/sound_server/frequency** *(sound_name (string), adjust (float), [time(float)])* Sets the playback frequency of a sound (or all sounds on a channel group). Optional argument *time* behaves as */sound_server/gain*.
-* **/sound_server/seek** *(sound_name (string), time (float))* seek to the given time inside the sound file. 
+* **/sound_server/frequency** *(sound_name (string), adjust (float), [time(float)])* Sets the playback frequency of a sound (or all sounds on a channel group). 1.0 = original rate, 0.5 = half, 2.0 = twice original rate, etc. Optional argument *time* behaves as */sound_server/gain*.
+* **/sound_server/seek** *(sound_name (string), time (float))* seek to the given time inside the sound file. Time is given in seconds. 
 *  **/sound_server/mute** *(sound_name (string))* Mute the given sound
 *  **/sound_server/unmute** *(sound_name (string))* Unmute the given sound
 *  **/sound_server/reverb** *(reverb_name (string))* Set the current reverb scene to the specified name.
 *  **/sound_server/eq** *(eq_name (string))* Set the current EQ scene to the specified name.
-*  **/sound_server/burst_enable** *(burst_name (string))* Enable the given random burst sound.
-*  **/sound_server/burst_disable** *(burst_name (string))* Disable the given random burst sound.
+*  **/sound_server/burst/enable** *(burst_name (string))* Enable the given random burst sound.
+*  **/sound_server/burst/disable** *(burst_name (string))* Disable the given random burst sound.
 *  **/sound_server/listener/position** *(x (float), y (float), z (float)*  Set the position of the 3D listener
 *  **/sound_server/listener/fwd** *(x (float), y (float), z (float)*  Set the forward vector of the 3D listener  
 *  **/sound_server/listener/up** *(x (float), y (float), z (float)*  Set the up vector of the 3D listener  
@@ -41,8 +59,8 @@ The YAML file consists of a number of sections:
 * *automations* Automatic adjustments to gain/position/filtering (run on the server)
 * *pools* Collections of sounds to randomly select from
 * *listener* Configuration of the 3D listener
-* *eqs* Master equaliser configuration
-* *reverbs* Master reverbs configuration
+* *eqs* Equaliser configurations
+* *reverbs* Reverb configurations
 
 ### Config
 *config* The configuration block sets global parameters for the server. Valid parameters are:
