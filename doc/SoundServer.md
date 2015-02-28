@@ -2,7 +2,7 @@
 The sound server reads a YAML file specifying sounds to be played. Sounds can then be triggered and manipulated remotely over OSC (e.g. fading in and out tracks).
 
 ## Starting the server
-To start the server, call `launch(<config>)`, where `<config>` is the path of a YAML config file. To shut it down, send it the OSC message **/sound_server/shutdown**; pressing Ctrl-C will have the same effect. Note that
+To start the server, call `launch(<config>)`, where `<config>` is the path of the YAML config file to use. To shut it down, send it the OSC message `/sound_server/shutdown`; pressing **Ctrl-C** will have the same effect. Note that
 the server will block; use `multiprocessing` if you want the server to run in the background
 
 Example:
@@ -21,37 +21,46 @@ Non-blocking example:
 
 ## OSC commands
 The server responds to OSC messages. The following messages are supported:
-* **/sound_server/spawn** *(sound_name (string), spawn_name(string))* Create a new transient sound. The sound with name sound_name is created. It will be assigned the name spawn_name, so that you can subsequently adjust its gain, position etc. spawn_names should be unique. **pools**: you may specify a *pool* name instead of a sound name; this will choose a random sound from the pool and spawn it.
 
-Only transient sounds should be spawned; (singleton) background layers are already spawned at server launch and can be started and stopped subsequently.
+For individual sounds only:
 
-In the following *sound_name* can be either the name of a sound or of a channel group.
-* **/sound_server/start** *(sound_name (string), [sync_point (string), sync_time (float)])* Starts a sound. **All sounds are initialised in the stopped state -- they must be started before anything will be heard.** Any initial parameters of a sound (e.g. gain, position) should be set *before* calling */sound_server/start*. If sync is given, this should specify the name
+* `/sound_server/spawn` *(sound_name (string), spawn_name(string))* Create a new transient sound. The sound with name `sound_name` is created. It will be assigned the name `spawn_name`, so that you can subsequently adjust its gain, position etc. `spawn_name`s should be unique. **pools**: you may specify a *pool* name instead of a sound name; this will choose a random sound from the pool and spawn it. Only transient sounds should be spawned; (singleton) background layers are already spawned at server launch and can be started and stopped subsequently.
+
+In the following `sound_name` can be either the name of a sound or of a channel group.
+
+* `/sound_server/start` *(sound_name (string), [sync_point (string), sync_time (float)])* Starts a sound. **All sounds are initialised in the stopped state -- they must be started before anything will be heard.** Any initial parameters of a sound (e.g. gain, position) should be set *before* calling */sound_server/start*. If sync is given, this should specify the name
 of a predefined *sync* point and a time offset in seconds. This allows precise synchronisation of sounds.
-* **/sound_server/stop** (sound_name (string), [sync_point (string), sync_time (float)]) Stops/pauses a sound. Can be resumed with */sound_server/start*.  Syncronisation can be again used to control the exact stopping time.
-* **/sound_server/sync** (sync_name (string)) Records a new sync point. This is a reference point to which sound starting and stopping can be precisely synchronised. Although the exact absolute time of the sync event cannot be controlled by the OSC client (e.g. because of network delays), all relative times to the sync point can be precisely controlled.
-* **/sound_server/gain** *(sound_name (string), dB (float), [time (float)])* Sets the gain of the specified sound in decibels (e.g. -6.0 means half the volume). *time* is optional -- if not given, the gain is set immediately; otherwise the sound fades from its current gain to the set gain in *time* seconds.
-* **/sound_server/group_gain** *(sound_name (string), dB (float), [time (float)])* Sets the gain of all the sounds on a specified channel group in decibels. Note that this is **different** from setting the gain of a channel group (which effectively multiplies the gain of all sounds by its own gain); instead, this *individually* sets the gain of the sounds in the group to the given level. Only works on channel groups.
-* **/sound_server/position** *(sound_name (string), x (float), y (float), z (float), [time(float)])* Sets the 3D position of the sound. Optional argument *time* behaves as */sound_server/gain*. If set
-on a channel group, overrides the position for all sub-channels. Call */sound_server/position none* to a channel group to clear any override and return to the individual sounds' positions.
-* **/sound_server/filter** *(sound_name (string), Hz (float), [time(float)])* Sets the lowpass filtering of a sound. Note that channel groups always have a filter active, but bare sounds only have one if it was specified in the YAML configuration (if you try and set a sound without a filter, nothing will happen). Optional argument *time* behaves as */sound_server/gain*.
-* **/sound_server/frequency** *(sound_name (string), adjust (float), [time(float)])* Sets the playback frequency of a sound (or all sounds on a channel group). 1.0 = original rate, 0.5 = half, 2.0 = twice original rate, etc. Optional argument *time* behaves as */sound_server/gain*.
-* **/sound_server/seek** *(sound_name (string), time (float))* seek to the given time inside the sound file. Time is given in seconds. 
-*  **/sound_server/mute** *(sound_name (string))* Mute the given sound
-*  **/sound_server/unmute** *(sound_name (string))* Unmute the given sound
-*  **/sound_server/reverb** *(reverb_name (string))* Set the current reverb scene to the specified name.
-*  **/sound_server/eq** *(eq_name (string))* Set the current EQ scene to the specified name.
-*  **/sound_server/burst/enable** *(burst_name (string))* Enable the given random burst sound.
-*  **/sound_server/burst/disable** *(burst_name (string))* Disable the given random burst sound.
-*  **/sound_server/listener/position** *(x (float), y (float), z (float)*  Set the position of the 3D listener
-*  **/sound_server/listener/fwd** *(x (float), y (float), z (float)*  Set the forward vector of the 3D listener  
-*  **/sound_server/listener/up** *(x (float), y (float), z (float)*  Set the up vector of the 3D listener  
-*  **/sound_server/automation/attach** *(sound_name (string), automation (string)*  Attach and activate the given automation to the given sound.
-*  **/sound_server/automation/detach** *(sound_name (string), automation (string)*  Stop and dettach the given automation from the given sound.
-*  **/sound_server/shutdown** Exit the server loop and fade out.
+* `/sound_server/stop` (sound_name (string), [sync_point (string), sync_time (float)]) Stops/pauses a sound. Can be resumed with */sound_server/start*.  Syncronisation can be again used to control the exact stopping time.
+* `/sound_server/gain` *(sound_name (string), dB (float), [time (float)])* Sets the gain of the specified sound in decibels (e.g. -6.0 means half the volume). *time* is optional -- if not given, the gain is set immediately; otherwise the sound fades from its current gain to the set gain in *time* seconds.
+* `/sound_server/position` *(sound_name (string), x (float), y (float), z (float), [time(float)])* Sets the 3D position of the sound. Optional argument *time* behaves as */sound_server/gain*. If set
+on a channel group, overrides the position for all sub-channels. Send `/sound_server/position <channel_group> none` to a channel group to clear any override and return to the individual sounds' positions.
+* `/sound_server/filter` *(sound_name (string), Hz (float), [time(float)])* Sets the lowpass filtering of a sound. Note that channel groups always have a filter active, but bare sounds only have one if it was specified in the YAML configuration (if you try and set a sound without a filter, nothing will happen). Optional argument *time* behaves as */sound_server/gain*.
+* `/sound_server/frequency` *(sound_name (string), adjust (float), [time(float)])* Sets the playback frequency of a sound (or all sounds on a channel group). 1.0 = original rate, 0.5 = half, 2.0 = twice original rate, etc. Optional argument *time* behaves as */sound_server/gain*.
+* `/sound_server/seek` *(sound_name (string), time (float))* seek to the given time inside the sound file. Time is given in seconds. 
+*  `/sound_server/mute` *(sound_name (string))* Mute the given sound
+*  `/sound_server/unmute` *(sound_name (string))* Unmute the given sound
+*  `/sound_server/automation/attach` *(sound_name (string), automation (string)*  Attach and activate the given automation to the given sound.
+*  `/sound_server/automation/detach` *(sound_name (string), automation (string)*  Stop and dettach the given automation from the given sound.
+
+The following only operate on channel groups:
+
+* `/sound_server/group_gain` *(sound_name (string), dB (float), [time (float)])* Sets the gain of all the sounds on a specified channel group in decibels. Note that this is **different** from setting the gain of a channel group (which effectively multiplies the gain of all sounds by its own gain); instead, this *individually* sets the gain of the sounds in the group to the given level. Only works on channel groups.
+
+The following have global effect:
+
+*  `/sound_server/reverb` *(reverb_name (string))* Set the current reverb scene to the specified name.
+*  `/sound_server/eq` *(eq_name (string))* Set the current EQ scene to the specified name.
+*  `/sound_server/burst/enable` *(burst_name (string))* Enable the given random burst sound.
+*  `/sound_server/burst/disable` *(burst_name (string))* Disable the given random burst sound.
+*  `/sound_server/listener/position` *(x (float), y (float), z (float)*  Set the position of the 3D listener
+*  `/sound_server/listener/fwd` *(x (float), y (float), z (float)*  Set the forward vector of the 3D listener  
+*  `/sound_server/listener/up` *(x (float), y (float), z (float)*  Set the up vector of the 3D listener  
+* `/sound_server/sync` (sync_name (string)) Records a new sync point. This is a reference point to which sound starting and stopping can be precisely synchronised. Although the exact absolute time of the sync event cannot be controlled by the OSC client (e.g. because of network delays), all relative times to the sync point can be precisely controlled.
+*  `/sound_server/shutdown` Exit the server loop and fade out.
 
 ## YAML file format
 The YAML file consists of a number of sections:
+
 * *config* Global configuration
 * *channel_groups* Mixer channel groups
 * *sounds* Individual sounds
@@ -63,7 +72,9 @@ The YAML file consists of a number of sections:
 * *reverbs* Reverb configurations
 
 ### Config
-*config* The configuration block sets global parameters for the server. Valid parameters are:
+
+The configuration block sets global parameters for the server. Valid parameters are:
+
 * *channels* total number of mixer channels to allocate (e.g. 96) (default: 96)
 * *base_path* base path to prepend to all sound filenames (e.g. sounds/)
 * *update_rate* rate of the soundserver update loop, in Hz (e.g. 100.0) (default: 100.0)
@@ -76,7 +87,6 @@ The YAML file consists of a number of sections:
 * *speaker_mode* the speaker mode to use. Can be one of: *stereo, mono, quad, surround, 5.1, 7.1, srs5.1, dolby5.1*
 * *velocity_filter* length of the filter used in velocity estimation for doppler effects. Should be in range [3,101]; values of around 13-19 are good. (Default: 13)
 * *doppler_scale* scaling of the doppler effect when sounds move. 0.0 = none, 1.0=normal, 5.0=extreme. (Default 0.)
-
 * *speaker_location* the speaker location block. Each speaker can be one of: 
     *front_left, front_center, front_right, low_frequency, back_left, back_right, side_left, side_right*
     stereo uses *front_center* and *front_right*. mono uses *front_left* only.
@@ -111,7 +121,8 @@ Each of the channel groups is a mixer channel. Multiple sounds can be mixed on a
 Each channel group has a gain, and can be filtered. Transient sounds _must_ be assigned to a channel group; the
 number of channels reserved for that groups transient sounds needs to be specified in the channel group specifcation.
  Channel groups can be attached to other channel groups, to form a hierarchy of mixers.
-*channel_group* valid parameters
+*channel_group* valid parameters:
+
 * *name* Name of the channel group
 * *transient_channels* Number of transient sub channels to allocate to this group
 * *gain* initial gain of the channel group in dB (default: 0.0)
@@ -138,6 +149,7 @@ Example:
 Each sound has at least a name and filename. A sound can be transient (played on demand) or not (played as background layer, for the whole duration of the server). The 3D position of the sound can be specified, along with the gain, a low-pass filter, and whether or not the sound loops. min_distance specifies the "scale" of the sound in world terms. A sound at exactly min_distance away has no gain attenuation at that level. The channel group this sound belongs to can be specified, which is mandatory for transient sounds
 
 Valid parameters for a sound:
+
 * *name* name of the sound (should be unique)
 * *file* filename of the wavefile (combined with base_path to find the actual file) (e.g. bloops.wav)
 * *min_distance* minimum distance at which sound is at full volume (e.g. 1000.0)
@@ -171,6 +183,7 @@ Example:
 
 ### Pools
 Pools are groups of transient sounds that can be randomly selected on a spawn request. This is useful for triggering sounds without being excessively repetitive. */sound_server/spawn/<pool_name>* will choose one of the sounds from *<pool_name>* and spawn it. Each pool has a name, and a list of sounds to trigger. All sounds in a pool must be transient. Valid parameters:
+
 * *name* Name of this pool
 * *sounds* List of sound names in this pool.
 
@@ -184,6 +197,7 @@ Example:
                 -   release_good
 ## Listener
 Listener sets the initial position and orientation of the 3D listener (the audio 'camera'). Orientation is given as a an up, forward vector pair. Valid parameters are:
+
 * *position* 3D position, as a list
 * *forward* 3D forward vector, as a list. Should be normalised.
 * *up* 3D forward vector, as a list. Should be normalised.
@@ -195,8 +209,9 @@ Example:
         forward:    [0,0,1]
         up:         [0,1,0]
 
-## eqs
-The eqs section lists all of the equaliser scenes available. Each equaliser is a list of bands, specifying the frequencies and gain to set. Valid parameters are:
+### EQs
+The `eqs` section lists all of the equaliser scenes available. Each equaliser is a list of bands, specifying the frequencies and gain to set. Valid parameters are:
+
 * *name* Name of the eq scene. If the name is *default*, then this eq will be activated on startup.
 * *bands* List of frequency bands. Each band is a list [frequency, octaves, gain], where *frequency* is in Hz, *octaves* is the width of the band in octaves, and *gain* is the gain in dB. *gain* should be in the range [-30, 6.0].
 
@@ -229,32 +244,36 @@ Example:
 ### Automations
 Automations specify automatic adjustments to position, gain or filtering of
 sounds or channel groups. Once activated, these continuously modulate the
-assigned variables. 
+assigned variables. Automations are additive; i.e. their effect is added to the current state of the variable. Multiple automations can be attached to a variable. E.g. if a sound has base gain -18dB and an attached automation has the current value +6dB, the sound's actual gain will be -12dB. 
 
 For example, an automation can be used to whirl a sound round
-in circles, or randomly fade in or fade out a sound. Each automation has a name, a type (random, sine or spline), an attribute (gain, filter or position) and
+in circles, or randomly fade in or fade out a sound. This is very useful for building up varying ambient soundscapes. Each automation has a name, a type (random, sine or spline), an attribute (gain, filter or position) and
 a specification for the specific type used. 
 
 Any automation can also have a time block, which specifies
-a sub-automation which will control the time rate of the original automation. e.g. a spline automation  can be used to speed up and slow down a sine automation.  The sub-automation must be one dimensional.
+a sub-automation which will control the time rate of the original automation. e.g. a spline automation  can be used to speed up and slow down a sine automation.  The sub-automation must be one dimensional. Time sub-automations can have time sub-sub-automations and so on, but this probably has limited use in practice.
 
 Valid parameters are:
+
 * *name* name of the automation
 * *type* type of the automation. Can be *sine*, *spline* or *random*
 * *attr* attribute to modify. Can be *gain*, *filter_val*, *frequency* or *position*
 * *time* A sub-automation that controls the rate of this automation.
 
 For *sine* automations, there should be a *sine* block with the following parameters:
+
 *    *min* minimum value of the sine wave
 *    *max* maximum value of the sine wave
 *    *frequency* frequency of the modulation, in Hz
 *    *phase* (optional), phase offset, in radians (default: 0.0)
 
 For *random* automations, there should be a *random* block with the following parameters:
+
 *    *range* range of the value
 *    *rate* rate of change, in units/seconds
 
 For *spline* automations, there should be a *spline* block with the following parameters:
+
 *    *rate* rate of playback, in seconds per point
 *    *points* a list of points on the spline
 *    *loop* (optional) whether or not to loop the spline, or just run it once (default: False)
@@ -306,6 +325,7 @@ Each burst has two modes: A and B, each of which can have different random rates
 The switching between mode A and mode B is governed by a simple Markov chain, which has a probability of switching into A from B and from B to A. If burstiness is not required, the parameters for mode A and B can be the same.
 
 Valid parameters:
+
 * *name* Name of the burst.
 * *pool* Sound pool to trigger from. Only pools can be triggered by bursts -- you can add a single sound to a pool if required.
 * *switching* The mode A->B and B->A probabilities, as a list. The probabilities are in in probablity of switching per second. e.g. [0.1, 0.9] makes
@@ -328,8 +348,7 @@ Example:
             -   rate: 2.0
                 gain: [-10, 0]
 ### Reverbs
-### Reverbs
-The reverb settings. The reverb with name 'default' will be loaded and enabled at start up, if it exists. The reverb settings are parameters for
+The reverb settings. The reverb with name `default` will be loaded and enabled at start up, if it exists. The reverb settings are parameters for
 the FMODEx REVERBSFX DSP object -- refer to the FMODEx documentation for details of their effect.
 
 Example (listing all valid parameters):
