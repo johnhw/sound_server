@@ -1,0 +1,313 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>SoundServer.md</title><style></style></head><body>
+<h1 id="soundserver">SoundServer</h1>
+<p>The sound server reads a YAML file specifying sounds to be played. Sounds can then be triggered and manipulated remotely over OSC (e.g. fading in and out tracks).</p>
+<h2 id="osc-commands">OSC commands</h2>
+<p>The server responds to OSC messages. The following messages are supported:</p>
+<ul>
+<li><strong>/sound_server/spawn</strong> <em>(sound_name (string), spawn_name(string))</em> Create a new transient sound. The sound with name sound_name is created. It will be assigned the name spawn_name, so that you can subsequently adjust its gain, position etc. spawn_names should be unique. <strong>pools</strong>: you may specify a <em>pool</em> name instead of a sound name; this will choose a random sound from the pool and spawn it.</li>
+</ul>
+<p>Only transient sounds should be spawned; (singleton) background layers are already spawned at server launch and can be started and stopped subsequently.</p>
+<p>In the following <em>sound_name</em> can be either the name of a sound or of a channel group.</p>
+<ul>
+<li><strong>/sound_server/start</strong> <em>(sound_name (string))</em> Starts a sound. <strong>All sounds are initialised in the stopped state -- they must be started before anything will be heard.</strong> Any initial parameters of a sound (e.g. gain, position) should be set <em>before</em> calling <em>/sound_server/start</em>.</li>
+<li><strong>/sound_server/stop</strong> (sound_name (string)) Stops/pauses a sound. Can be resumed with <em>/sound_server/start</em>.</li>
+<li><strong>/sound_server/gain</strong> <em>(sound_name (string), dB (float), [time (float)])</em> Sets the gain of the specified sound in decibels (e.g. -6.0 means half the volume). <em>time</em> is optional -- if not given, the gain is set immediately; otherwise the sound fades from its current gain to the set gain in <em>time</em> seconds.</li>
+<li><strong>/sound_server/position</strong> <em>(sound_name (string), x (float), y (float), z (float), [time(float)])</em> Sets the 3D position of the sound. Optional argument <em>time</em> behaves as <em>/sound_server/gain</em>.</li>
+<li><strong>/sound_server/filter</strong> <em>(sound_name (string), Hz (float), [time(float)])</em> Sets the lowpass filtering of a sound. Note that channel groups always have a filter active, but bare sounds only have one if it was specified in the YAML configuration (if you try and set a sound without a filter, nothing will happen). Optional argument <em>time</em> behaves as <em>/sound_server/gain</em>.</li>
+<li><strong>/sound_server/mute</strong> <em>(sound_name (string))</em> Mute the given sound</li>
+<li><strong>/sound_server/unmute</strong> <em>(sound_name (string))</em> Unmute the given sound</li>
+<li><strong>/sound_server/reverb</strong> <em>(reverb_name (string))</em> Set the current reverb scene to the specified name.</li>
+<li><strong>/sound_server/eq</strong> <em>(eq_name (string))</em> Set the current EQ scene to the specified name.</li>
+<li><strong>/sound_server/burst_enable</strong> <em>(burst_name (string))</em> Enable the given random burst sound.</li>
+<li><strong>/sound_server/burst_disable</strong> <em>(burst_name (string))</em> Disable the given random burst sound.</li>
+<li><strong>/sound_server/listener/position</strong> <em>(x (float), y (float), z (float)</em>  Set the position of the 3D listener</li>
+<li><strong>/sound_server/listener/fwd</strong> <em>(x (float), y (float), z (float)</em>  Set the forward vector of the 3D listener  </li>
+<li><strong>/sound_server/listener/up</strong> <em>(x (float), y (float), z (float)</em>  Set the up vector of the 3D listener  </li>
+<li><strong>/sound_server/automation/attach</strong> <em>(sound_name (string), automation (string)</em>  Attach and activate the given automation to the given sound.</li>
+<li><strong>/sound_server/automation/detach</strong> <em>(sound_name (string), automation (string)</em>  Stop and dettach the given automation from the given sound.</li>
+<li><strong>/sound_server/shutdown</strong> Exit the server loop and fade out.</li>
+</ul>
+<h2 id="yaml-file-format">YAML file format</h2>
+<p>The YAML file consists of a number of sections:</p>
+<ul>
+<li><em>config</em> Global configuration</li>
+<li><em>channel_groups</em> Mixer channel groups</li>
+<li><em>sounds</em> Individual sounds</li>
+<li><em>bursts</em> Stochastic event emitters </li>
+<li><em>automations</em> Automatic adjustments to gain/position/filtering (run on the server)</li>
+<li><em>pools</em> Collections of sounds to randomly select from</li>
+<li><em>listener</em> Configuration of the 3D listener</li>
+<li><em>eqs</em> Master equaliser configuration</li>
+<li><em>reverbs</em> Master reverbs configuration</li>
+</ul>
+<h3 id="config">Config</h3>
+<p><em>config</em> The configuration block sets global parameters for the server. Valid parameters are:</p>
+<ul>
+<li><em>channels</em> total number of mixer channels to allocate (e.g. 96)</li>
+<li><em>base_path</em> base path to prepend to all sound filenames (e.g. sounds/)</li>
+<li><em>update_rate</em> rate of the soundserver update loop, in Hz (e.g. 100.0)</li>
+<li><em>dsp_jitter</em> timing jitter added to sounds to avoid machine gun effects. Should be roughly equal to 1/update_rate (e.g. 0.01)</li>
+<li><em>ip_address</em> IP address to listen on for the OSC server (e.g. 127.0.0.1 for localhost)</li>
+<li><em>port</em> Port used for OSC server (e.g. 8000)</li>
+<li><em>audio_device</em> part of the name of an audio device to use. The first audio device with a name string which contains audio_device will be used. If omitted, the first audio device will be used.</li>
+<li><em>buffer_size</em> length of one audio buffer in samples. Longer may be more stable, but increases latency</li>
+<li><em>n_buffers</em> number of buffers of length <em>buffer_size</em>. Total latency = (<em>n_buffers</em> x <em>buffer_size</em>) / sample_rate</li>
+<li><em>speaker_mode</em> the speaker mode to use. Can be one of: <em>stereo, mono, quad, surround, 5.1, 7.1, srs5.1, dolby5.1</em></li>
+<li><em>speaker_location</em> the speaker location block. Each speaker can be one of: 
+  <em>front_left, front_center, front_right, low_frequency, back_left, back_right, side_left, side_right</em>
+  stereo uses <em>front_center</em> and <em>front_right</em>. mono uses <em>front_left</em> only.
+  Each speaker can be enabled and the x,y spatial position in the range [-1, 1]</li>
+<li><p><em>spatial_scale</em> scaling of the 3D units used. The default space is -10000 -&gt; 10000 (e.g. 0.01 would make a world space from [-100, 100])</p>
+<p>  Example:</p>
+<pre><code>  speaker_location:
+      front_left: 
+          x: -1
+          y: 1
+          enabled: True
+      front_right:
+          x: 1
+          y:1
+          # enabled is default True
+</code></pre></li>
+</ul>
+<p>Example:</p>
+<pre><code>config:
+    channels: 96
+    base_path: sounds
+    dsp_jitter: 0.02
+    update_rate: 100.0
+    ip_address: 127.0.0.1
+    port: 8000
+    audio_device: M-Audio
+</code></pre><h3 id="channel-groups">Channel Groups</h3>
+<p>Each of the channel groups is a mixer channel. Multiple sounds can be mixed on a channel group.
+Each channel group has a gain, and can be filtered. Transient sounds <em>must</em> be assigned to a channel group; the
+number of channels reserved for that groups transient sounds needs to be specified in the channel group specifcation.
+ Channel groups can be attached to other channel groups, to form a hierarchy of mixers.
+<em>channel_group</em> valid parameters</p>
+<ul>
+<li><em>name</em> Name of the channel group</li>
+<li><em>transient_channels</em> Number of transient sub channels to allocate to this group</li>
+<li><em>gain</em> initial gain of the channel group in dB (default: 0.0)</li>
+<li><em>mute</em> initial mute state (default: False)</li>
+<li><em>filter</em> initial lowpass filter state, in Hz (default: 30000 (disabled))</li>
+<li><em>subgroups</em> a list of channel group names to attach as subgroups of this channel</li>
+</ul>
+<p>Example:</p>
+<pre><code>channel_groups:
+    -   name: background_layers
+        subgroups: [drone_layer]
+
+    -   name: drone_layer
+        gain: -20.0
+        filter: 1000
+
+    -   name: bubble_sounds
+        transient_channels: 16
+        gain: 0.0 
+</code></pre><h3 id="sounds">Sounds</h3>
+<p>Each sound has at least a name and filename. A sound can be transient (played on demand) or not (played as background layer, for the whole duration of the server). The 3D position of the sound can be specified, along with the gain, a low-pass filter, and whether or not the sound loops. min_distance specifies the &quot;scale&quot; of the sound in world terms. A sound at exactly min_distance away has no gain attenuation at that level. The channel group this sound belongs to can be specified, which is mandatory for transient sounds</p>
+<p>Valid parameters for a sound:</p>
+<ul>
+<li><em>name</em> name of the sound (should be unique)</li>
+<li><em>file</em> filename of the wavefile (combined with base_path to find the actual file) (e.g. bloops.wav)</li>
+<li><em>min_distance</em> minimum distance at which sound is at full volume (e.g. 1000.0)</li>
+<li><em>position</em> 3D position of sound (default. [0,0,0])</li>
+<li><em>channel_group</em> the channel_group mixer to play on (e.g. background_layer)</li>
+<li><em>gain</em> the initial gain, in db (default: 0.0)</li>
+<li><em>filter</em> filter frequency, in Hz. Note that if this sound has a filter specified in the YAML, <em>/sound_server/filter</em> will be able to adjust its frequency; otherwise no filter will be attached to this sound and <em>/sound_server/filter</em> messages directed at this sound will be ignored. Use 30000 to create a filter initially off. (default: None)</li>
+<li><em>loop</em> whether or not to loop (default: False)</li>
+<li><em>transient</em> whether or not this is a transient sound (triggered multiple times) or a background sound layer. Transient sounds <strong>must</strong> have a channel_group specified, and that channel_group must have transient channels allocated.</li>
+</ul>
+<p>Example:</p>
+<pre><code>sounds:
+    -   name: touch_beep
+        min_distance: 60        
+        transient: True
+        position: [0,0,0]
+        file: pop-sound.wav
+        channel_group: touch_sounds
+
+
+    -   name: clicky
+        min_distance: 10000
+        gain: -18
+        loop: True
+        position: [0,0,0]
+        file: layer_clicky.wav
+        channel_group: background_layers
+</code></pre><h3 id="pools">Pools</h3>
+<p>Pools are groups of transient sounds that can be randomly selected on a spawn request. This is useful for triggering sounds without being excessively repetitive. <em>/sound_server/spawn/&lt;pool_name&gt;</em> will choose one of the sounds from <em>&lt;pool_name&gt;</em> and spawn it. Each pool has a name, and a list of sounds to trigger. All sounds in a pool must be transient. Valid parameters:</p>
+<ul>
+<li><em>name</em> Name of this pool</li>
+<li><em>sounds</em> List of sound names in this pool.</li>
+</ul>
+<p>Example:</p>
+<pre><code>pools:
+    -   name: release
+        sounds:
+            -   release_bad
+            -   release_jazz
+            -   release_good
+</code></pre><h2 id="listener">Listener</h2>
+<p>Listener sets the initial position and orientation of the 3D listener (the audio &#39;camera&#39;). Orientation is given as a an up, forward vector pair. Valid parameters are:</p>
+<ul>
+<li><em>position</em> 3D position, as a list</li>
+<li><em>forward</em> 3D forward vector, as a list. Should be normalised.</li>
+<li><em>up</em> 3D forward vector, as a list. Should be normalised.</li>
+</ul>
+<p>Example:</p>
+<pre><code>listener:
+    position:   [0,0,0]
+    forward:    [0,0,1]
+    up:         [0,1,0]
+</code></pre><h2 id="eqs">eqs</h2>
+<p>The eqs section lists all of the equaliser scenes available. Each equaliser is a list of bands, specifying the frequencies and gain to set. Valid parameters are:</p>
+<ul>
+<li><em>name</em> Name of the eq scene. If the name is <em>default</em>, then this eq will be activated on startup.</li>
+<li><em>bands</em> List of frequency bands. Each band is a list [frequency, octaves, gain], where <em>frequency</em> is in Hz, <em>octaves</em> is the width of the band in octaves, and <em>gain</em> is the gain in dB. <em>gain</em> should be in the range [-30, 6.0].</li>
+</ul>
+<p>Example:</p>
+<pre><code>eqs:
+    name: flat
+    bands:
+        - [100.0,1.0, 0.0]
+        - [200.0,1.0, 0.0]
+        - [400.0,1.0, 0.0]
+        - [800.0,1.0, 0.0]
+        - [1600.0,1.0, 0.0]
+        - [3200.0,1.0, 0.0]
+        - [6400.0,1.0, 0.0]
+        - [12800.0,1.0, 0.0]
+
+    name: low_only
+        bands:
+        - [50.0,1.0, 0.0]
+        - [100.0,1.0, 0.0]
+        - [200.0,1.0, 0.0]
+        - [400.0,1.0, 0.0]
+        - [800.0,1.0, 0.0]
+        - [1600.0,1.0, -15.0]
+        - [3200.0,1.0, -20.0]
+        - [6400.0,1.0, -25.0]
+        - [12800.0,1.0, -30.0]
+</code></pre><h3 id="automations">Automations</h3>
+<p>Automations specify automatic adjustments to position, gain or filtering of
+sounds or channel groups. Once activated, these continuously modulate the
+assigned variables. </p>
+<p>For example, an automation can be used to whirl a sound round
+in circles, or randomly fade in or fade out a sound. Each automation has a name, a type (random, sine or spline), an attribute (gain, filter or position) and
+a specification for the specific type used. </p>
+<p>Any automation can also have a time block, which specifies
+a sub-automation which will control the time rate of the original automation. e.g. a spline automation  can be used to speed up and slow down a sine automation.  The sub-automation must be one dimensional.</p>
+<p>Valid parameters are:</p>
+<ul>
+<li><em>name</em> name of the automation</li>
+<li><em>type</em> type of the automation. Can be <em>sine</em>, <em>spline</em> or <em>random</em></li>
+<li><em>attr</em> attribute to modify. Can be <em>gain</em>, <em>filter_val</em>, or <em>position</em></li>
+<li><em>time</em> A sub-automation that controls the rate of this automation.</li>
+</ul>
+<p>For <em>sine</em> automations, there should be a <em>sine</em> block with the following parameters:</p>
+<ul>
+<li><em>min</em> minimum value of the sine wave</li>
+<li><em>max</em> maximum value of the sine wave</li>
+<li><em>frequency</em> frequency of the modulation, in Hz</li>
+<li><em>phase</em> (optional), phase offset, in radians (default: 0.0)</li>
+</ul>
+<p>For <em>random</em> automations, there should be a <em>random</em> block with the following parameters:</p>
+<ul>
+<li><em>range</em> range of the value</li>
+<li><em>rate</em> rate of change, in units/seconds</li>
+</ul>
+<p>For <em>spline</em> automations, there should be a <em>spline</em> block with the following parameters:</p>
+<ul>
+<li><em>rate</em> rate of playback, in seconds per point</li>
+<li><em>points</em> a list of points on the spline</li>
+<li><em>loop</em> (optional) whether or not to loop the spline, or just run it once (default: False)</li>
+<li><em>tension</em> (optional) tension of the spline (TCB spline) (default: -0.5)</li>
+<li><em>bias</em> (optional) bias of the spline (default: 0.0)</li>
+<li><em>continuity</em> (optional) continuity of the spline (default: 0.0)</li>
+</ul>
+<p>Example:</p>
+<pre><code>automations:
+    - name: fade
+      type: random
+      attr: gain
+      random:
+        range: [-18, 0]
+        rate: 20.0
+
+    - name: flutter
+      type: sine
+      attr: gain
+      sine:
+        frequency: 5.0
+        min: -20
+        max: 0
+     # note the use of the time block to vary the rate
+      time:
+        type: spline
+        spline:
+            points: [0.25, 0.5, 1.0, 2.0, 3.0, 4.0]
+            rate: 0.5
+            loop: True
+
+    - name: spline
+      type: spline
+      attr: gain
+      spline:
+        points: [0.0, -20.0, -40.0, -60.0, 0, 6.0]
+        rate: 2.0
+        loop: False
+</code></pre><h3 id="bursts">Bursts</h3>
+<p>Bursts are sounds which can be automatically triggered by the server, on a random schedule. This is useful for things like bubbles, firework sounds, bird noises, etc. Each burst specifies a random rate at which to operate, a gain range, and a 3D position
+box for the sounds to go in. </p>
+<p>Each burst has two modes: A and B, each of which can have different random rates, gains and position. This is useful to acheive bursty sounds (e.g. a rush of bubbles followed by a few occasional bubbles then a rush, etc.)</p>
+<p>The switching between mode A and mode B is governed by a simple Markov chain, which has a probability of switching into A from B and from B to A. If burstiness is not required, the parameters for mode A and B can be the same.</p>
+<p>Valid parameters:</p>
+<ul>
+<li><em>name</em> Name of the burst.</li>
+<li><em>pool</em> Sound pool to trigger from. Only pools can be triggered by bursts -- you can add a single sound to a pool if required.</li>
+<li><em>switching</em> The mode A-&gt;B and B-&gt;A probabilities, as a list. The probabilities are in in probablity of switching per second. e.g. [0.1, 0.9] makes
+a mode which transitions to B every 10 seconds or so, and back to B within less than a second.</li>
+<li><em>space</em> The 3D space in which to trigger a sound, as a bounding box [[x1, y1, z1], [x2, y2, z2]]. e.g. [[0,0,0], [100, 100, 100]]</li>
+<li><em>states</em> Two state elements<ul>
+<li><em>rate</em> Rate of generation, in events/second. e.g. 2.0</li>
+<li><em>gain</em> gain range of events in dB, as a pair [min, max]. e.g. [-20, 0]</li>
+</ul>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>bursts:
+-   name: bubbles
+    pool: bubbles
+    switching: [0.1, 0.3]
+    space: [[0,0,0], [0,0,0]]
+    states:
+        -   rate: 2.0
+            gain: [-10, 0]               
+        -   rate: 2.0
+            gain: [-10, 0]
+</code></pre><h3 id="reverbs">Reverbs</h3>
+<h3 id="reverbs">Reverbs</h3>
+<p>The reverb settings. The reverb with name &#39;default&#39; will be loaded and enabled at start up, if it exists. The reverb settings are parameters for
+the FMODEx REVERBSFX DSP object -- refer to the FMODEx documentation for details of their effect.</p>
+<p>Example (listing all valid parameters):</p>
+<pre><code>  - name: default
+    dry: 0
+    room: -20
+    room_hf: 0.0
+    room_rolloff: 10.0
+    room_decaytime: 10
+    room_decay_hfratio: 0.5
+    reflections_level: -100
+    reflections_delay: 0.02
+    reverb_level: 0.0
+    reverb_delay: 0.04
+    diffusion: 100.0
+    density: 100.0
+    hf_reference: 5000.0
+    room_lf: 0.0
+    lf_reference: 250.0
+</code></pre>
+</body></html>

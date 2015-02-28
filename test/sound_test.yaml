@@ -1,0 +1,261 @@
+---
+
+# global config for the sound server
+config:
+    # number of mixer channels available
+    channels: 96
+    
+    # base path to prepend to all sound filenames
+    base_path: .
+
+    # seconds of random delay to add to sounds to avoid machine gun effect 
+    # roughly 1/rate
+    dsp_jitter: 0.02
+    
+    # update rate of the server, in Hz
+    update_rate: 100.0
+        
+    # port and IP to listen on for the OSC server    
+    ip_address: 0.0.0.0
+    port: 8000
+    
+    # buffer size, in samples
+    buffer_size: 512
+    n_buffers: 4
+    
+    # scaling of the doppler effect; 1.0 = normal, 0.0=off
+    doppler_scale: 1.0
+    
+    # specifies the first device whose name matches this string
+    #audio_device: M-Audio
+    
+    # can be stereo, mono, quad, surround, 5.1, 7.1, srs5.1, dolby5.1
+    speaker_mode: stereo
+    
+    # scaling of the 3D units. default space is -10000 -> 10000
+    spatial_scale: 1.0
+    
+    # velocity filtering, integer from 3 -> 101
+    velocity_filter: 13
+    
+    # the x,y locations of the speakers in physical space. Range [-1, 1]
+    speaker_location:
+        front_left:
+            x: -1
+            y: 1
+        front_right:
+            x: 1
+            y: 1
+
+# Channel Groups    
+# Each of the channel groups is a mixer channel. Multiple sounds can be mixed
+# on a channel group.
+# Each channel group has a gain, and can be filtered.
+# Transient sounds _must_ be assigned to a channel group; the
+# number of channels reserved for that groups transient sounds needs to
+# be specified in the channel group specifcation.
+# Channel groups can be attached to other channel groups, to form a hierarchy of mixers, using subgroups: [x,y,z]
+channel_groups:
+    -   name: background_layers        
+        gain: -4
+        
+    -   name: background_mix
+        subgroups: [background_layers, creatures]
+        gain: 0
+            
+    -   name: creatures
+        transient_channels: 8
+        gain: -14
+        
+    
+# Sounds        
+# Each sound has a name and filename
+# A sound can be transient (played on demand) or not (played as background layer)
+# The 3D position of the sound can be specified, along with the gain, a low-pass filter, and whether or not
+# the sound loops. min_distance specifies the "scale" of the sound in world terms. A sound at exactly min_distance away
+# has no gain attenuation at that level.
+# The channel group this sound belongs to can be specified, which is mandatory for transient sounds
+# Valid parameters for a sound:
+# name: name of the sound (should be unique)
+# min_distance: minimum distance at which sound is at full volume
+# position: 3d position of sound
+# file: filename of the wavefile (combined with base_path to find the actual file)
+# channel_group: the channel_group mixer to play on
+# gain: the initial gain
+
+sounds:
+        
+    -   name: atmosphere
+        file: atmosphere_bed_looped.wav
+        filter: 18000
+        loop: True
+        channel_group: background_layers
+        gain: -15
+        min_distance: 1500
+        automation: 
+            - water_fade
+            - water_filter
+            - water_pos
+    
+      
+    - name: creature_1
+      transient: True
+      min_distance: 1000
+      file: creature_1.wav
+      channel_group: creatures
+    
+    - name: creature_2
+      transient: True
+      min_distance: 1000
+      file: creature_2.wav
+      channel_group: creatures
+    
+    - name: creature_3
+      transient: True
+      min_distance: 1000
+      file: creature_3.wav
+      channel_group: creatures
+      
+    - name: creature_4
+      transient: True
+      min_distance: 1000
+      file: creature_4.wav
+      channel_group: creatures
+     
+    
+bursts:
+                
+    -   name: creatures
+        pool: creatures
+        switching: [0.1, 0.3]
+        space: [[-1000,0,-1000], [1000,0,1000]]
+        states:
+            -   rate: 0.05
+                gain: [-10, 0]               
+            -   rate: 0.05
+                gain: [-10, 0]
+                
+    
+# Automations specify automatic adjustments to position, gain or filtering of
+# sounds or channel groups. Once activated, these continuously modulate the
+# assigned variables. For example, an automation can be used to whirl a sound round
+# in circles
+# Each automation has a name, a type (random, sine or spline), an attribute (gain, filter or position) and
+# a specification for the specific type used. Any automation can also have a time block, which specifies
+# another automation which will control the time rate of the original automation. e.g. a spline automation
+# can be used to speed up and slow down a sine automation
+automations:
+        
+        
+    # water background changes
+    - name: water_fade
+      type: random
+      attr: gain
+      random:
+        range: [-8, 0]
+        rate: 40.0
+        
+            
+        
+    - name: water_pos
+      type: random
+      attr: position
+      random:
+        range: [[-1000, 0, -1000], [1000, 0, 1000]]
+        rate: 40.0
+        
+        
+    - name: water_filter
+      type: random
+      attr: filter
+      random:
+        range: [-15000, 0]
+        rate: 30.0
+        
+    
+# Pools        
+# pools are groups of transient sounds that can be randomly selected on a spawn request        
+# useful for triggering sounds without being excessively repetitive
+# /sound_server/spawn/<pool_name> will choose one of the sounds from <pool_name> and spawn it
+pools:
+            
+    - name: creatures
+      sounds: 
+        - creature_1 
+        - creature_2 
+        - creature_3        
+        - creature_4
+        
+        
+# the initial position of the 3D listener. Up and forward give
+# the 3D orientation of the listener in the world
+listener:
+    position:   [0,0,0]
+    forward:    [0,0,1]
+    up:         [0,1,0]
+        
+# the equaliser settings, as [Hz, octaves, gain] pairs
+eqs:
+    - name: default
+      bands:
+        - [50.0, 1.0, 0.0]
+        - [100.0,1.0, 0.0]
+        - [200.0,1.0, 0.0]
+        - [400.0,1.0, 0.0]
+        - [800.0,1.0, 0.0]
+        - [1600.0,1.0, 0.0]
+        - [3200.0,1.0, 0.0]
+        - [6400.0,1.0, 0.0]
+        - [12800.0,1.0, 0.0]
+        
+    - name: low
+      bands:
+        - [50.0,1.0, 0.0]
+        - [100.0,1.0, 0.0]
+        - [200.0,1.0, 0.0]
+        - [400.0,1.0, 0.0]
+        - [800.0,1.0, 0.0]
+        - [1600.0,1.0, -15.0]
+        - [3200.0,1.0, -20.0]
+        - [6400.0,1.0, -20.0]
+        - [12800.0,1.0, -20.0]
+
+# the reverb settings. The reverb with name 'default' will be loaded
+# and enabled at start up, if it exists.
+reverbs:
+      - name: default
+        dry: 0
+        room: -20
+        room_hf: 0.0
+        room_rolloff: 10.0
+        room_decaytime: 10
+        room_decay_hfratio: 0.5
+        reflections_level: -100
+        reflections_delay: 0.02
+        reverb_level: 0.0
+        reverb_delay: 0.04
+        diffusion: 100.0
+        density: 100.0
+        hf_reference: 5000.0
+        room_lf: 0.0
+        lf_reference: 250.0
+    
+      - name: dry
+        dry: 0
+        room: -100
+        room_hf: 0.0
+        room_rolloff: 10.0
+        room_decaytime: 10
+        room_decay_hfratio: 0.5
+        reflections_level: -100
+        reflections_delay: 0.02
+        reverb_level: 0.0
+        reverb_delay: 0.04
+        diffusion: 100.0
+        density: 100.0
+        hf_reference: 5000.0
+        room_lf: 0.0
+        lf_reference: 250.0
+    
+    
+

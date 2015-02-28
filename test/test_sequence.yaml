@@ -1,0 +1,22 @@
+---
+
+# the configuration file the server should load
+config: sound_test.yaml
+
+# the OSC messages, in [time, addr, data_0, data_1, ... ] format
+osc:
+    # start the background atmosphere layer
+    - [0.0, /sound_server/start, atmosphere]
+    - [0.0, /sound_server/gain, atmosphere, 0.0, 2.0]
+    
+    # spawn some transient sounds: note we must first spawn, then start a transient sound
+    - [2.0, /sound_server/spawn, creatures, c1]
+    - [0.0, /sound_server/start, c1]
+    - [4.0, /sound_server/spawn, creatures, c2]
+    - [0.0, /sound_server/start, c2]
+    
+    # enable the burst instead
+    - [10.0, /sound_server/burst/enable, creatures]    
+    - [60.0, /sound_server/shutdown]
+    
+    
