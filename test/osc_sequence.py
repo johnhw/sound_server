@@ -21,10 +21,10 @@ if __name__=="__main__":
     server_config = config.get("config")    
     logging.debug("Launching sound server")
     multiprocessing.Process(target=sound_server.launch, args=(server_config,)).start()
-    time.sleep(2)
+    time.sleep(5)
     
-    port = config.get("port", 8000)
     # init OSC
+    port = config.get("port", 8000)    
     ip_address = config.get("ip_address", "127.0.0.1")    
     simpleOSC.initOSCClient(ip=ip_address, port=port)
     start_time = clock.time()

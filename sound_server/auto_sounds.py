@@ -172,7 +172,7 @@ class Burst(object):
         self.maxs = []
         for state in spec['states']:
             rate = state.get('rate', 0.0)
-            self.rates.append(1.0-np.exp(-rate))
+            self.rates.append(rate)
             min, max = state.get('gain', (0,0))
             self.mins.append(min)
             self.maxs.append(max)
@@ -190,14 +190,14 @@ class Burst(object):
         self.gilbert.update(dt)
         state = self.gilbert.state
         # get the emission rate, mean and std. dev gain for this channel
-        rate, min, max = 1.0-self.rates[state], self.mins[state], self.maxs[state]
+        rate, min, max = self.rates[state], self.mins[state], self.maxs[state]
+        
+        # correct for sampling rate
+        rate = 1-((1-rate)**(dt))                
         
         def pos(ix):
             return np.random.uniform(self.min_xyz[ix], self.max_xyz[ix])
-                    
-        # adjust for sampling rate        
-        rate = 1.0-rate**(dt)
-        
+                            
         if random.random()<rate:
             gain = np.random.uniform(min, max)
             gain = np.clip(gain, -120, 0) # make sure gain doesn't exceed 0.0

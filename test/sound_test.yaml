@@ -132,8 +132,8 @@ bursts:
         states:
             -   rate: 0.05
                 gain: [-10, 0]               
-            -   rate: 0.05
-                gain: [-10, 0]
+            -   rate: 0.1
+                gain: [-30, 0]
                 
     
 # Automations specify automatic adjustments to position, gain or filtering of

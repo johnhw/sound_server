@@ -437,6 +437,21 @@ class SoundServer(object):
             self.bursts[burst].enabled = state
         else:
             logging.debug("Tried to enable/disable non-existent burst %s" % (burst))
+            
+    def set_burst_switch(self, burst, state):
+        if burst in self.bursts:
+            self.bursts[burst].state = int(state)
+        else:
+            logging.debug("Tried to set state of non-existent burst %s" % (burst))
+    
+    def set_burst_rate(self, burst, state, rate):
+        if burst in self.bursts:
+            if state==0 or state==1:
+                self.bursts[burst].rates[state] = float(rate)
+            else:
+                logging.debug("Tried to set rate for invalid state %d on burst %s" % (state, burst))    
+        else:
+            logging.debug("Tried to set state of non-existent burst %s" % (burst))
     
     def set_reverb_scene(self, reverb):
         if reverb in self.reverbs:
@@ -612,6 +627,11 @@ class SoundServer(object):
             if addr=='/sound_server/burst/disable':
                 self.set_burst_enable(data[0], False)
                 
+            if addr=='/sound_server/burst/switch':
+                self.set_burst_switch(data[0], data[1])
+            if addr=='/sound_server/burst/rate':
+                self.set_burst_rate(data[0], data[1], data[2])            
+                
             if addr=='/sound_server/automation/add':
                 s, auto, name = data[0], data[1], data[2]
                 self.attach_automation(s, auto, name)
@@ -664,7 +684,7 @@ class SoundServer(object):
         initOSCServer(self.ip_address, self.port)
         msgs = ["spawn", "filter", "gain",  "start", "stop", "position",
         "filter",  "mute", "unmute", "eq",  "group_gain",     
-         "automation/add",  "automation/remove", "shutdown", 'reverb', 'burst/enable', 'burst/disable', 
+         "automation/add",  "automation/remove", "shutdown", 'reverb', 'burst/enable', 'burst/disable', 'burst/switch', 'burst/rate',
          'listener/position', 'listener/fwd', 'listener/up', 'sync', 'seek', 'frequency', 'loop'
         ]        
         for msg in msgs:

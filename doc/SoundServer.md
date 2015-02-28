@@ -2,8 +2,8 @@
 The sound server reads a YAML file specifying sounds to be played. Sounds can then be triggered and manipulated remotely over OSC (e.g. fading in and out tracks).
 
 ## Starting the server
-To start the server, call `launch(<config>)`, where `<config>` is the path of the YAML config file to use. To shut it down, send it the OSC message `/sound_server/shutdown`; pressing **Ctrl-C** will have the same effect. Note that
-the server will block; use `multiprocessing` if you want the server to run in the background
+To start the server, call `sound_server.launch(<config>)`, where `<config>` is the path of the YAML config file to use. To shut it down, send it the OSC message `/sound_server/shutdown`; pressing **Ctrl-C** will have the same effect. Note that
+the server will block; use `multiprocessing` if you want the server to run in the background.
 
 Example:
 
@@ -17,16 +17,48 @@ Non-blocking example:
     
     server_process = multiprocessing.Process(target=sound_server.launch, args=("my_config.yaml",))
     server_process.start()
+
+By default, the server will be listening on port 8000; you can change this in the YAML config file.
     
+## Background
+
+### Channel groups
+Every sound in the server must belong to a *channel group*. This is much like a channel on a mixer desk. Each channel group has its own gain, which reduces/increases the gain of all sounds playing on it. For example, a sound playing at -3dB attached to a channel with a gain of -18dB will have an actual gain of -21dB. This allows groups of sounds to be faded in and out synchronously. Channels also have low-pass filters, allowing groups of sounds to be filtered. 
+
+Most commands that work on sounds also work on channel groups; e.g. "starting" a channel group starts all sounds attached to it; setting the 3D position of a channel forces all attached sounds to that 3D position.
+
+#### Master channel
+Channel groups can have sub-channels; this allows a hierarchy of mixer levels. There is a master channel group (called `master`) which all channel groups belong to. Adjusting the gain or filter on the master channel adjusts the overall gain/filtering of the output.
+
+#### Global effects
+A single reverb and EQ unit are attached to the master channel. Their parameters cannot be controlled directly over OSC, but OSC commands can switch to different reverb or EQ scenes defined in the YAML file (e.g. from a dry space to a heavily reverbed cathedral, or from a mix with reduced bass to a mix without EQ'ing).
+
+### Transient / non-transient sounds
+Sounds can either be *transient* or *non-transient*. Transient sounds are ones which may be played multiple times (e.g. gunfire, water bubbles). Non-transient sounds are background layers which may fade in and out, but only one copy will ever be played at once.
+
+All sounds begin in the stopped state, and must be started before they will be heard. This is so you can set gain, frequency etc *before* any sound is heard.
+
+Transient sounds must belong to a channel group with a number of *transient channels* allocated. These channels will be used to play the sounds. With a single transient channel, only one copy of the sound can play at one time (starting another will stop the first). With two channels, two copies can be played at once, etc. Note that the *transient channel* can be shared among many transient sounds; you don't need one per transient sound. Transient sounds must be *spawned* before they can be started; this just generates a new copy of the sound. Every *spawned* sound must have a unique name -- this name is specified in the *spawn* command, and you can use this as a handle to manipulate properties of the spawned sound (e.g. to set gain). Example:
+
+	# copy sound bubble and spawn it as a new sound bubble_0
+	/sound_server/spawn bubble bubble_0
+    
+	# adjust gain of bubble_0 to -7dB
+	/sound_server/gain bubble_0 -7
+
+	# now start this sound
+	/sound_server/start bubble_0 
+
+
 
 ## OSC commands
 The server responds to OSC messages. The following messages are supported:
 
-For individual sounds only:
+For individual transient *sound*s only:
 
 * `/sound_server/spawn` *(sound_name (string), spawn_name(string))* Create a new transient sound. The sound with name `sound_name` is created. It will be assigned the name `spawn_name`, so that you can subsequently adjust its gain, position etc. `spawn_name`s should be unique. **pools**: you may specify a *pool* name instead of a sound name; this will choose a random sound from the pool and spawn it. Only transient sounds should be spawned; (singleton) background layers are already spawned at server launch and can be started and stopped subsequently.
 
-In the following `sound_name` can be either the name of a sound or of a channel group.
+In the following `sound_name` can be either the name of a *sound* or of a *channel group*.
 
 * `/sound_server/start` *(sound_name (string), [sync_point (string), sync_time (float)])* Starts a sound. **All sounds are initialised in the stopped state -- they must be started before anything will be heard.** Any initial parameters of a sound (e.g. gain, position) should be set *before* calling */sound_server/start*. If sync is given, this should specify the name
 of a predefined *sync* point and a time offset in seconds. This allows precise synchronisation of sounds.
@@ -42,16 +74,22 @@ on a channel group, overrides the position for all sub-channels. Send `/sound_se
 *  `/sound_server/automation/attach` *(sound_name (string), automation (string)*  Attach and activate the given automation to the given sound.
 *  `/sound_server/automation/detach` *(sound_name (string), automation (string)*  Stop and dettach the given automation from the given sound.
 
-The following only operate on channel groups:
+The following only operate on *channel groups*:
 
 * `/sound_server/group_gain` *(sound_name (string), dB (float), [time (float)])* Sets the gain of all the sounds on a specified channel group in decibels. Note that this is **different** from setting the gain of a channel group (which effectively multiplies the gain of all sounds by its own gain); instead, this *individually* sets the gain of the sounds in the group to the given level. Only works on channel groups.
+
+The following operate on *bursts*:
+
+*  `/sound_server/burst/enable` *(burst_name (string))* Enable the given random burst sound.
+*  `/sound_server/burst/disable` *(burst_name (string))* Disable the given random burst sound.
+*  `/sound_server/burst/switch` *(burst_name (string), state (int))* Set the state of the given burst to `state`. `state` must be 0 or 1.
+*  `/sound_server/burst/rate` *(burst_name (string), state (int), rate (float))* Set the generation rate of burst `state` to the given rate. `rate` should be in [0,1]. 
+
 
 The following have global effect:
 
 *  `/sound_server/reverb` *(reverb_name (string))* Set the current reverb scene to the specified name.
 *  `/sound_server/eq` *(eq_name (string))* Set the current EQ scene to the specified name.
-*  `/sound_server/burst/enable` *(burst_name (string))* Enable the given random burst sound.
-*  `/sound_server/burst/disable` *(burst_name (string))* Disable the given random burst sound.
 *  `/sound_server/listener/position` *(x (float), y (float), z (float)*  Set the position of the 3D listener
 *  `/sound_server/listener/fwd` *(x (float), y (float), z (float)*  Set the forward vector of the 3D listener  
 *  `/sound_server/listener/up` *(x (float), y (float), z (float)*  Set the up vector of the 3D listener  

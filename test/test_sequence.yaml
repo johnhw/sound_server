@@ -16,7 +16,15 @@ osc:
     - [0.0, /sound_server/start, c2]
     
     # enable the burst instead
-    - [10.0, /sound_server/burst/enable, creatures]    
+    - [10.0, /sound_server/burst/enable, creatures] 
+
+    # switch between burst modes explicitly
+    - [5.0, /sound_server/burst/switch, creatures, 1]    
+    - [5.0, /sound_server/burst/switch, creatures, 0]    
+    
+    # make the rate very high
+    - [5.0, /sound_server/burst/rate, creatures, 0, 0.2]    
+    
     - [60.0, /sound_server/shutdown]
     
     
