@@ -12,7 +12,7 @@ def savitzky_golay(window_size=None,order=2):
         raise TypeError("window size is too small for the polynomial")
 
     # A second order polynomial has 3 coefficients
-    order_range = list(range(order+1))
+    order_range = range(order+1)
     half_window = (window_size-1)//2
     B = np.mat(
         [ [k**i for i in order_range] for k in range(-half_window, half_window+1)] )
@@ -25,7 +25,7 @@ def savitzky_golay(window_size=None,order=2):
 # savitzky-golay polynomial estimator, with optional derivatives
 def sg_filter(size, deriv=0, order=4):
     if size%2==0:
-        print("Size for Savitzky-Golay must be odd. Adjusting...")
+        print "Size for Savitzky-Golay must be odd. Adjusting..."
         size = size + 1            
     if order<deriv+1:
         order = deriv+1
@@ -39,7 +39,7 @@ def sg_filter(size, deriv=0, order=4):
 class SavitzkyGolay:
     def __init__(self, size, deriv=0, order=4):
         if size%2==0:
-            print("Size for Savitzky-Golay must be odd. Adjusting...")
+            print "Size for Savitzky-Golay must be odd. Adjusting..."
             size = size + 1        
         self.size = size        
         self.deriv = deriv

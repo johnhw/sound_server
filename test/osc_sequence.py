@@ -37,7 +37,7 @@ if __name__=="__main__":
     while index < len(oscs):
         now = clock.time()
          
-        while now>=next_time:            
+        while now>=next_time and index<len(oscs):            
             osc = oscs[index]
             t, addr = osc[0], osc[1]            
             data = osc[2:]

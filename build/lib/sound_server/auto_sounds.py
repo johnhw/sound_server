@@ -1,9 +1,9 @@
 import random, logging
 import copy
-from .smooth import SmoothVal
+from smooth import SmoothVal
 from collections import defaultdict
 import numpy as np
-from .spline import CardinalSpline
+from spline import CardinalSpline
 
     
 class Gilbert(object):
@@ -35,7 +35,7 @@ class SineAutomation(object):
         self.frequency = np.array(frequency)
         self.state = np.zeros_like(self.mins).astype(np.float64)
         self.phase = phase
-        print(self.mins, self.maxs)
+        print self.mins, self.maxs
         
     def update(self, dt):
         self.phase += dt * 2 * np.pi

@@ -202,22 +202,21 @@ Valid parameters for a sound:
 * *doppler* the doppler scaling for this sound. If doppler=0.0, this sound has no doppler effect. If doppler=1.0, this sound has normal doppler effect. The total doppler effect depends on the setting of *doppler_scale* in the global configuration block.
 Example:
 
-    sounds:
-        -   name: touch_beep
-            min_distance: 60        
-            transient: True
-            position: [0,0,0]
-            file: pop-sound.wav
-            channel_group: touch_sounds
-            
-            
-        -   name: clicky
-            min_distance: 10000
-            gain: -18
-            loop: True
-            position: [0,0,0]
-            file: layer_clicky.wav
-            channel_group: background_layers
+
+ 		sounds:
+		        -   name: touch_beep
+		            min_distance: 60        
+		            transient: True
+		            position: [0,0,0]
+		            file: pop-sound.wav
+		            channel_group: touch_sounds                        
+		        -   name: clicky
+		            min_distance: 10000
+		            gain: -18
+		            loop: True
+		            position: [0,0,0]
+		            file: layer_clicky.wav
+		            channel_group: background_layers
 
 ### Pools
 Pools are groups of transient sounds that can be randomly selected on a spawn request. This is useful for triggering sounds without being excessively repetitive. */sound_server/spawn/<pool_name>* will choose one of the sounds from *<pool_name>* and spawn it. Each pool has a name, and a list of sounds to trigger. All sounds in a pool must be transient. Valid parameters:
@@ -307,7 +306,7 @@ For *sine* automations, there should be a *sine* block with the following parame
 
 For *random* automations, there should be a *random* block with the following parameters:
 
-*    *range* range of the value
+*    *range* min/max range of the value
 *    *rate* rate of change, in units/seconds
 
 For *spline* automations, there should be a *spline* block with the following parameters:
@@ -358,19 +357,19 @@ Example:
 Bursts are sounds which can be automatically triggered by the server, on a random schedule. This is useful for things like bubbles, firework sounds, bird noises, etc. Each burst specifies a random rate at which to operate, a gain range, and a 3D position
 box for the sounds to go in. 
 
-Each burst has two modes: A and B, each of which can have different random rates, gains and position. This is useful to acheive bursty sounds (e.g. a rush of bubbles followed by a few occasional bubbles then a rush, etc.)
+Each burst has two modes: 0 and 1, each of which can have different random rates, gains and position. This is useful to acheive bursty sounds (e.g. a rush of bubbles followed by a few occasional bubbles then a rush, etc.)
 
-The switching between mode A and mode B is governed by a simple Markov chain, which has a probability of switching into A from B and from B to A. If burstiness is not required, the parameters for mode A and B can be the same.
+The switching between mode 0 and mode 1 is governed by a simple Markov chain, which has a probability of switching into 0 from 1 and from 1 to 0. If burstiness is not required, the parameters for mode 0 and 1 can be the same.
 
 Valid parameters:
 
 * *name* Name of the burst.
 * *pool* Sound pool to trigger from. Only pools can be triggered by bursts -- you can add a single sound to a pool if required.
-* *switching* The mode A->B and B->A probabilities, as a list. The probabilities are in in probablity of switching per second. e.g. [0.1, 0.9] makes
+* *switching* The mode A->B and B->A probabilities, as a list. The probabilities are in in probability of switching per second. e.g. [0.1, 0.9] makes
 a mode which transitions to B every 10 seconds or so, and back to B within less than a second.
 * *space* The 3D space in which to trigger a sound, as a bounding box [[x1, y1, z1], [x2, y2, z2]]. e.g. [[0,0,0], [100, 100, 100]]
 * *states* Two state elements
-    * *rate* Rate of generation, in events/second. e.g. 2.0
+    * *rate* Rate of generation, in probability of an events in a second. e.g. 0.5
     * *gain* gain range of events in dB, as a pair [min, max]. e.g. [-20, 0]
     
 Example:
@@ -381,9 +380,9 @@ Example:
         switching: [0.1, 0.3]
         space: [[0,0,0], [0,0,0]]
         states:
-            -   rate: 2.0
+            -   rate: 0.002
                 gain: [-10, 0]               
-            -   rate: 2.0
+            -   rate: 0.1
                 gain: [-10, 0]
 ### Reverbs
 The reverb settings. The reverb with name `default` will be loaded and enabled at start up, if it exists. The reverb settings are parameters for

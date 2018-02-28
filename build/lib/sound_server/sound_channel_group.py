@@ -1,13 +1,12 @@
 import pyfmodex, time, yaml
-from .sound_global_state import new_channel, from_dB, system, VelocityFilter
+from sound_global_state import new_channel, from_dB, system, VelocityFilter
 import logging
-from .smooth import SmoothVal
+from smooth import SmoothVal
 from pyfmodex.constants import *
 import ctypes
 from pyfmodex.structures import VECTOR
-from .auto_sounds import AutomationGroup, Automation
+from auto_sounds import AutomationGroup, Automation
 import numpy as np
-FMOD_DSP_TYPE_MULTIBAND_EQ = 36
 
 def add_dsp_channel_group(ch_group, dsp):
     # work around PyFMODEx bug
@@ -39,7 +38,6 @@ class ChannelGroup(object):
         self.parent = None
         self.filter_val = SmoothVal(ch_group.get('filter', 48000), 0.01)
         lp_filter = system.create_dsp_by_type(FMOD_DSP_TYPE_LOWPASS)            
-        
         lp_filter.set_param(0, self.filter_val.state)
         self.sub_group_channels = []
         self.transient_channels = ch_group.get('transient_channels', 0)
@@ -105,4 +103,4 @@ class ChannelGroup(object):
             self.lp_filter.bypass = True           
         else:
             self.lp_filter.bypass = False
-            self.lp_filter.set_param(FMOD_DSP_MULTIBAND_EQ_FREQUENCY, cutoff)
+            self.lp_filter.set_param(0, cutoff)

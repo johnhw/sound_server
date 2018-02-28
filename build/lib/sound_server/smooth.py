@@ -96,9 +96,9 @@ def test_smooth_val():
     sl = SmoothVal(0.0, 1.0, linear=True)
     for ts in [1.0]:
         for target in [1.0]:
-            print()
-            print("Time: %.2f, target %.2f" % (ts, target))
-            print()
+            print
+            print "Time: %.2f, target %.2f" % (ts, target)
+            print
             s.set_time(ts)
             sl.set_time(ts)
             s.set(target)
@@ -107,7 +107,7 @@ def test_smooth_val():
             for i in range(50):
                 s.update(0.01)
                 sl.update(0.01)
-                print(t, s.state, sl.state)
+                print t, s.state, sl.state
                 t += 0.1
 
 if __name__=="__main__":

@@ -5,16 +5,15 @@ from pyfmodex.constants import *
 from collections import defaultdict
 import logging, copy, atexit
 from simpleOSC import *
-from .smooth import SmoothVal
-from . import sound_global_state
-from .sound_global_state import VelocityFilter
-from .sound_global_state import new_channel, from_dB, to_dB
+from smooth import SmoothVal
+import sound_global_state
+from sound_global_state import VelocityFilter
+from sound_global_state import new_channel, from_dB, to_dB
 import tempfile
 import multiprocessing
-import queue
-from .auto_sounds import Burst, AutomationGroup, Automation
+import Queue
+from auto_sounds import Burst, AutomationGroup, Automation
 import yaml
-from functools import reduce
 
 logging.basicConfig(filename=os.path.join(tempfile.gettempdir(),"sound_server.log"), level=logging.DEBUG, format='%(asctime)s:%(message)s')
 logging.getLogger().addHandler(logging.StreamHandler())
@@ -23,8 +22,8 @@ logging.getLogger().addHandler(logging.StreamHandler())
 system = pyfmodex.System()
 sound_global_state.system = system
 
-from .sound_object import Sound, DSP_clock, set_channel_delay_start, set_channel_delay_pause
-from .sound_channel_group import ChannelGroup
+from sound_object import Sound, DSP_clock, set_channel_delay_start, set_channel_delay_pause
+from sound_channel_group import ChannelGroup
 
 def call_fmod(fn, *args):        
     result = getattr(pyfmodex.fmodobject._dll, fn)(system._ptr, *args)
@@ -81,7 +80,7 @@ speaker_modes = {"mono":FMOD_SPEAKERMODE_MONO, "stereo":FMOD_SPEAKERMODE_STEREO,
 "7.1":FMOD_SPEAKERMODE_7POINT1, "srs5.1":FMOD_SPEAKERMODE_SRS5_1_MATRIX, "dolby5.1":FMOD_SPEAKERMODE_DOLBY5_1_MATRIX}
 
 # id -> speaker name table
-speaker_ids = dict(list(zip(list(speaker_modes.values()), list(speaker_modes.keys()))))                    
+speaker_ids = dict(zip(speaker_modes.values(), speaker_modes.keys()))                    
 
 def replace_from_yaml(defaults, replacement):            
     for key in defaults:
@@ -301,11 +300,11 @@ class SoundServer(object):
                 
         objects_from_yaml(self.channel_groups, ChannelGroup, "channel_groups")
         # now form subgroup attachements        
-        [ch_group.setup_subgroups(self.channel_groups) for ch_group in list(self.channel_groups.values())]
+        [ch_group.setup_subgroups(self.channel_groups) for ch_group in self.channel_groups.values()]
         
         top_level = []
         # add top level groups to the master
-        for ch_group in list(self.channel_groups.values()):
+        for ch_group in self.channel_groups.values():
             if ch_group.parent==None:                
                 top_level.append(ch_group)
                 system.master_channel_group.add_group(ch_group.group)
@@ -341,7 +340,7 @@ class SoundServer(object):
         objects_from_yaml(self.automations, Automation, "automations")
         objects_from_yaml(self.pools, lambda x:SoundPool(x, self.sounds), "pools")
                 
-        self.sounds_and_channels = dict(list(self.sounds.items()) + list(self.channel_groups.items()))
+        self.sounds_and_channels = dict(self.sounds.items() + self.channel_groups.items())
         self.automation_attachements = {}
         self.enable_automations()
         logging.debug("Sounds created")
@@ -357,7 +356,7 @@ class SoundServer(object):
     def update(self, dt):        
         """Update all sounds, channel groups, stochastic burst handlers, then delete any finished sounds"""
         # handle spawing events from the bursts
-        for burst in list(self.bursts.keys()):
+        for burst in self.bursts.keys():
             b = self.bursts[burst]            
             trigger = b.update(dt)            
             if trigger:                
@@ -371,7 +370,7 @@ class SoundServer(object):
                  
         kill_list = []                  
         # and then each of layers (e.g. to make sure fades take effect)
-        for sound in list(self.sounds.keys()):
+        for sound in self.sounds.keys():
             snd = self.sounds[sound]
             if snd is None or snd.finished:
                 kill_list.append(sound)
@@ -380,7 +379,7 @@ class SoundServer(object):
                 
         # each of the channel groups (must do this after sounds for override to work)
         
-        for ch_group in list(self.channel_groups.keys()):
+        for ch_group in self.channel_groups.keys():
             self.channel_groups[ch_group].update(dt)      
              
         for sound in kill_list:
@@ -520,7 +519,7 @@ class SoundServer(object):
         
         try:
             self.osc_queue.put((addr, tags, data, source))
-        except queue.Full:
+        except Queue.Full:
             pass
         except:
             logging.exception("Queue put failure")
@@ -569,7 +568,7 @@ class SoundServer(object):
                         self.sounds[s].clear_velocity()
                 elif s in self.channel_groups:
                     # disable position override on a string parameter
-                    if isinstance(data[1], str):
+                    if isinstance(data[1], basestring):
                         self.channel_groups[s].position_set = False       
                     else:
                         self.channel_groups[s].position.set_with_time(pos, time)   
@@ -705,7 +704,7 @@ class SoundServer(object):
             try:
                 addr, tags, data, source = self.osc_queue.get_nowait()
                 self.handle_osc(addr, tags, data, source)
-            except queue.Empty:
+            except Queue.Empty:
                 more_osc = False
                 pass
             except:
@@ -767,7 +766,7 @@ class SoundServer(object):
 
 # recursively merge nested dictionaries. code from http://stackoverflow.com/questions/7204805/dictionaries-of-dictionaries-merge                
 def mergedicts(dict1, dict2):
-    for k in set(dict1.keys()).union(list(dict2.keys())):
+    for k in set(dict1.keys()).union(dict2.keys()):
         if k in dict1 and k in dict2:
             if isinstance(dict1[k], dict) and isinstance(dict2[k], dict):
                 yield (k, dict(mergedicts(dict1[k], dict2[k])))

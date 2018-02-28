@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from .derivative_estimator import SavitzkyGolay
+from derivative_estimator import SavitzkyGolay
 
 # the global FMOD system object
 system = None

@@ -5,10 +5,10 @@ import random
 import ctypes
 from pyfmodex.constants import *
 import logging, copy
-from .smooth import SmoothVal
-from .sound_global_state import new_channel, from_dB, VelocityFilter
-from . import sound_global_state
-from .auto_sounds import AutomationGroup
+from smooth import SmoothVal
+from sound_global_state import new_channel, from_dB, VelocityFilter
+import sound_global_state
+from auto_sounds import AutomationGroup
 
 system = None
 

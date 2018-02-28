@@ -5,7 +5,7 @@ def readme():
         return f.read()
         
 setup(name='sound_server',
-      version='0.1',
+      version='0.1.1',
       description='A Python-based sound server, allowing control of the FModEx API via OSC messages.',
       long_description=readme(),
       url='http://github.com/johnhw/sound_server',
