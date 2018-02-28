@@ -5,9 +5,13 @@
 /dist/
 /build/
 
+# openal headers
+/openal/
+
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 fmodex64.dll
 *.bak
 *.lib
 *.dll
+
