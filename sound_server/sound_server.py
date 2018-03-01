@@ -1,10 +1,9 @@
-import pyfmodex, time
+import time
 import numpy as np
 import os, sys, random, ctypes
-from pyfmodex.constants import *
 from collections import defaultdict
 import logging, copy, atexit
-from simpleOSC import *
+#from simpleOSC import *
 from .smooth import SmoothVal
 from . import sound_global_state
 from .sound_global_state import VelocityFilter
@@ -20,15 +19,10 @@ logging.basicConfig(filename=os.path.join(tempfile.gettempdir(),"sound_server.lo
 logging.getLogger().addHandler(logging.StreamHandler())
 
 # Global FMOD system object
-system = pyfmodex.System()
-sound_global_state.system = system
 
 from .sound_object import Sound, DSP_clock, set_channel_delay_start, set_channel_delay_pause
 from .sound_channel_group import ChannelGroup
 
-def call_fmod(fn, *args):        
-    result = getattr(pyfmodex.fmodobject._dll, fn)(system._ptr, *args)
-    return result
     
 def DSP_info():
     """Get the software mixer status from FMOD.

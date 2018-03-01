@@ -6,27 +6,39 @@ os.environ["ALSOFT_CONF"] = "openal/openal.cfg"
 from openal import *
 from openal._al import *
 from openal._alc import *
+from . import openal_ext
 from ctypes import *
 import time
 import ctypes
-import openal_ext
+from . import alutils
 
-ALC_DEFAULT_ALL_DEVICES_SPECIFIER=0x1012
-ALC_ALL_DEVICES_SPECIFIER=0x1013
-if __name__=="__main__":
+
+
     
-    wav = oalOpen("test/creature_1.wav")
+
+if __name__=="__main__":
+
+    oalInit()
+    alutils.init()
+    globals().update(alutils.ext)
+
     devices = alcGetString(None, ALC_ALL_DEVICES_SPECIFIER)
-    print(devices)
+    
+    oalQuit()
 
-    ext = openal_ext.load_extensions()
-    globals().update(ext.__dict__)
 
-    if not alcIsExtensionPresent(alcGetContextsDevice(alcGetCurrentContext()), c_char_p(b"ALC_EXT_EFX")):
+    
+    oalInit(context_attr_list=alutils.attr_list({ALC_MAX_AUXILIARY_SENDS:8}))
+    
+    print(alutils.get_device_attributes())
+
+    wav = oalOpen("test/creature_1.wav")
+    
+    if not alutils.has_efx():
         print("No EFX unit")
 
     
-    has_eax = alGetEnumValue(c_char_p(b"AL_EFFECT_EAXREVERB"))
+    has_eax = alutils.get_enum("AL_EFFECT_EAXREVERB")
     if has_eax!=0:
         efx = ALuint()
         alGenEffects(1, byref(efx))

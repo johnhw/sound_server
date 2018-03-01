@@ -6,7 +6,7 @@
 /build/
 
 # openal headers
-/openal/*.h
+/sound_server/openal/openal_headers/*.h
 
 
 # Python egg metadata, regenerated from source files by setuptools.

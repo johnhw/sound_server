@@ -1,9 +1,8 @@
-import pyfmodex, time, yaml
+import time, yaml
 import numpy as np
 import os
 import random
 import ctypes
-from pyfmodex.constants import *
 import logging, copy
 from .smooth import SmoothVal
 from .sound_global_state import new_channel, from_dB, VelocityFilter

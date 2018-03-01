@@ -1,13 +1,10 @@
-import pyfmodex, time, yaml
+import time, yaml
 from .sound_global_state import new_channel, from_dB, system, VelocityFilter
 import logging
 from .smooth import SmoothVal
-from pyfmodex.constants import *
 import ctypes
-from pyfmodex.structures import VECTOR
 from .auto_sounds import AutomationGroup, Automation
 import numpy as np
-FMOD_DSP_TYPE_MULTIBAND_EQ = 36
 
 def add_dsp_channel_group(ch_group, dsp):
     # work around PyFMODEx bug
