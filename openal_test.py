@@ -1,7 +1,7 @@
 import os
 os.environ["ALSOFT_LOGLEVEL"] = "3"
 os.environ["ALSOFT_LOGFILE"] = "openal.log"
-os.environ["ALSOFT_CONF"] = "openal.cfg"
+os.environ["ALSOFT_CONF"] = "openal/openal.cfg"
 
 from openal import *
 from openal._al import *

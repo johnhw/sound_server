@@ -92,10 +92,11 @@ class Namespace:
     def __init__(self, kwargs):
         self.__dict__.update(kwargs)
 
+
 def load_extensions():
     all_defs = {}    
-    for header in ["openal/efx.h", "openal/alext.h"]:
-        defs, procs = parse_definitions(header)
+    for header in ["openal/efx.h", "openal/alext.h", "openal/al.h", "openal/alc.h"]:
+        defs, procs = parse_definitions(header)        
         all_defs.update(defs)
         add_procs(procs, all_defs)
     return Namespace(all_defs)

@@ -1,6 +1,22 @@
 # SoundServer
 The sound server reads a YAML file specifying sounds to be played. Sounds can then be triggered and manipulated remotely over OSC (e.g. fading in and out tracks). This allows
 remote configuration and manipluation of sounds in realtime over a network. Pyfmodex and FModEx are used to render the sounds.  Most FModEx features are supported. 
+
+# OpenAL setup
+OpenAL SOFT must be installed, and the relevant DLL/shared library file (e.g. `openal64.dll` or `openal32.dll`) must be present.
+The include files from the source repository (`include/AL`) must be downloaded and copied into the `openal/` folder (note: these are not distributed
+with this package as they are GPL licensed; they are parsed to extract the call signatures and constant definitions)
+
+  openal/
+      al.h
+      alc.h
+      alext.h
+      efx.h
+
+Configuration for OpenAL is read from `openal/openal.cfg`
+
+
+
 ## Example
 Example YAML configuration:
 
